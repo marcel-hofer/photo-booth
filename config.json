@@ -52,5 +52,9 @@
 	},
 	"flash": {
 		"enabled": true
+	},
+	"logging": {
+		"level": "debug",
+		"fileName": "content/app.log"
 	}
 }

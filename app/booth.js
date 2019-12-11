@@ -20,6 +20,7 @@
 
 //'use strict';
 import 'util';
+import logger from './logger.js'
 
 import $ from 'jquery';
 
@@ -84,7 +85,7 @@ if( utils.getConfig().triggers &&
  * Activate the use of GPIOs by setting useGPIO in config.json to true.
  */
 if (utils.getConfig().init.useGPIO !== undefined ? utils.getConfig().init.useGPIO : true) {
-  console.log('GPIO usage activated');
+  logger.debug('GPIO usage activated');
   const gpio = require('rpi-gpio');
   gpio.setMode(gpio.MODE_BCM);
   gpio.setup(3, gpio.DIR_IN, gpio.EDGE_BOTH);
@@ -143,11 +144,11 @@ function trigger(callback) {
         livePreview.stop();
       if (utils.getConfig().flash !== undefined && utils.getConfig().flash.enabled) {
         const flash = $("#flash");
-        
+
         setTimeout(function () {
           flash.addClass("flash");
         }, triggerPhotoOffsetBeforeZero*1000);
-      
+
         setTimeout(function () {
           flash.removeClass("flash");
         }, (triggerPhotoOffsetBeforeZero*1000)+750);
@@ -186,8 +187,7 @@ function trigger(callback) {
               slideshow.start();
 
             } else {
-
-              console.error(message1, '\n', message2);
+              logger.error('triggerPhoto failed', { result: res, reason: message1 }, message2);
               callback(false);
 
               if (res === -1 ) {  // camera not initialized
@@ -195,7 +195,7 @@ function trigger(callback) {
               } else if (res == -2) { // gphoto2 error
                 new CameraErrorPrompt(5).start(false, false, function() {
                   executing = false;
-                  getCurrentWindow().reload();
+                  //getCurrentWindow().reload();
                 });
               } else if (res == -3) { // sharp error
                  new SharpErrorPrompt(5).start(false, false, function() { executing = false; });

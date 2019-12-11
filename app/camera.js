@@ -22,6 +22,7 @@ import fs from 'fs';
 import sharp from 'sharp';
 
 import utils from "./utils.js";
+import logger from './logger.js'
 
 const gphoto2 = utils.getConfig().gphoto2.simulate
 	? null
@@ -54,7 +55,7 @@ class Camera {
 			}
 			self.camera = list[0];
 
-			console.log('gphoto2: Found', self.camera.model);
+			logger.debug('gphoto2: Found', { cameraModel: self.camera.model });
 
 			if (utils.getConfig().gphoto2.capturetarget) {
 				self.camera.setConfigValue('capturetarget', utils.getConfig().gphoto2.capturetarget, function (err) {
@@ -97,6 +98,8 @@ class Camera {
 	}
 
 	_takePictureWithCamera(callback) {
+		logger.debug('take picture');
+
 		var self = this;
 
 		if (self.camera === undefined) {
@@ -121,7 +124,7 @@ class Camera {
 	_createSamplePicture(callback) {
 		var self = this;
 
-		console.log('sample picture');
+		logger.debug('take picture (simulation mode)');
 
 		const timestamp = utils.getTimestamp();
 		const watermark = new Buffer(`<svg width="3000" height="2000">

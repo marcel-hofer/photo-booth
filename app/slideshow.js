@@ -1,27 +1,27 @@
-/* 
- * This file is part of "photo-booth" 
+/*
+ * This file is part of "photo-booth"
  * Copyright (c) 2018 Philipp Trenz
  *
  * For more information on the project go to
  * <https://github.com/philipptrenz/photo-booth>
- * 
- * This program is free software: you can redistribute it and/or modify  
- * it under the terms of the GNU General Public License as published by  
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, version 3.
  *
- * This program is distributed in the hope that it will be useful, but 
- * WITHOUT ANY WARRANTY; without even the implied warranty of 
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU 
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License 
+ * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
 import $ from 'jquery';
 
 import utils from "./utils.js";
-
+import logger from './logger.js'
 
 class Slideshow {
 
@@ -37,21 +37,19 @@ class Slideshow {
       if (this.duration < 4) this.duration = 4;
 
 
-      console.log('slideshow: enabled');
+      logger.debug('slideshow: enabled');
 
       var self = this;
       $('body').mousemove(function() {
         self.stop();
         self.start();
       });
-      
+
       this.start();
 
     } else {
       this.enabled = false;
     }
-    
-    
   }
 
   start() {
@@ -72,7 +70,7 @@ class Slideshow {
 
           $('#collage').append("<div id='slideshow-"+clzz+"' class='slideshow' style='background-image: url(" + arr[idx] + ");'>");
           $('#slideshow-'+clzz).fadeIn(3000, function() {
-          
+
           if (self.prevImg !== undefined)  $(self.prevImg).remove();
           self.prevImg = '#slideshow-'+clzz;
           });
@@ -83,7 +81,6 @@ class Slideshow {
         }, self.duration*1000);
       }, self.delay*1000);
     }
-    
   }
 
   stop(callback) {
@@ -106,5 +103,5 @@ class Slideshow {
 /*
  * Module exports for connection
  */
-let slideshow = new Slideshow() 
+let slideshow = new Slideshow();
 export { slideshow as default };

@@ -26,6 +26,8 @@ import sharp from 'sharp';
 import GIFEncoder from 'gif-encoder';
 import getPixels from 'get-pixels';
 
+import logger, { init as initLogger } from './logger.js'
+
 class Utils {
 
   constructor() {
@@ -39,6 +41,7 @@ class Utils {
     this.maxImages = 20;
 
     this.getConfig();
+    this.initLogger();
     this.checkGrayscaleMode();
     this.getContentDirectory();
 
@@ -53,6 +56,11 @@ class Utils {
       return this.config;
     }
     return this.config;
+  }
+
+  initLogger() {
+    initLogger(this.config);
+    logger.debug('logger initialized')
   }
 
   saveConfig(new_config, callback) {
@@ -74,8 +82,7 @@ class Utils {
         delete require.cache[_path];
 
         self.config = require(self.config_path); // should not be needed
-        //console.log('utils: config.json updated: \n'+JSON.stringify(self.config, null, "\t"));
-        console.log('utils: config.json updated');
+        logger.info('utils: config.json updated');
         callback(true);
       }
     });
@@ -247,10 +254,10 @@ class Utils {
 
         if (alias >= 1) {
           // this single interface has multiple ipv4 addresses
-          console.log("utils: interface", ifname + ':' + alias, iface.address);
+          logger.debug("utils: interface", ifname + ':' + alias, iface.address);
         } else {
           // this interface has only one ipv4 adress
-          console.log("utils: interface", ifname, iface.address);
+          logger.debug("utils: interface", ifname, iface.address);
         }
         ++alias;
       });
@@ -259,7 +266,7 @@ class Utils {
 
   checkGrayscaleMode() {
     if (this.getConfig().init.grayscaleMode) {
-      console.log("utils: using grayscale mode");
+      logger.debug("utils: using grayscale mode");
       $('head').append('<link rel="stylesheet" type="text/css" href="css/grayscale.css">');
     }
   }

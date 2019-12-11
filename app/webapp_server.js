@@ -23,6 +23,7 @@ import path from 'path';
 
 import booth from './booth.js';
 import utils from "./utils.js";
+import logger from './logger.js'
 import templateService from './template-service.js';
 import translationService from './translation-service.js';
 import collage from './collage.js';
@@ -32,13 +33,13 @@ var port = 80;
 
 process.on('uncaughtException', function(err) {
     if (err.errno === 'EACCES') {
-		console.warn('webapp: photo-booth must be run as root to use port 80. '
+		logger.warn('webapp: photo-booth must be run as root to use port 80. '
 		+ 'Basically, it\'s not a good idea to run a web server as root, '
 		+ 'consider setting up a redirect from port 80 to 8080 on your system');
 		port = 8080;
 		server.listen(port);
     } else
-		console.error(err);
+		logger.error('uncaughtException', err);
 });
 
 // server stuff
@@ -50,7 +51,7 @@ var io = require('socket.io')(server);
 var remote = require('electron').remote;
 
 server.listen(port, function () {
-	console.log('webapp: listening at port %d', port);
+	logger.debug('webapp: listening at port %d', port);
 });
 
 // Routing
@@ -107,6 +108,7 @@ function handlePhotoRequest(path) {
 
 // Connect event
 io.on('connection', function(socket){
+	logger.debug('new client connected', { clientId: socket.id });
 
 	if (utils.getConfig().init.grayscaleMode) {
 		io.to(socket.id).emit('use grayscale');
@@ -117,6 +119,7 @@ io.on('connection', function(socket){
 	}
 
 	socket.on('disconnect', function() {
+		logger.debug('client disconnected', { clientId: socket.id });
 	});
 
 	// save mail address
@@ -124,9 +127,9 @@ io.on('connection', function(socket){
 		var contentDir = utils.getContentDirectory();
 		fs.appendFile(contentDir+'/contact-addresses.txt', msg+",\n", function (err) {
 			if (err) {
-				console.log('webapp: writing contact address to file failed: '+err);
+				logger.error('writing contact address to file failed: ', { clientId: socket.id }, err);
 			} else {
-				console.log('webapp:', '\''+msg+'\'', 'added to contact-addresses.txt');
+				logger.debug('contact address added to contact-addresses.txt', { clientId: socket.id }, { msg });
 			}
 		});
 	});
@@ -138,7 +141,7 @@ io.on('connection', function(socket){
 
 	// send photo urls to requesting client
 	socket.on('get latest photos', function(){
-		console.log("webapp: requested latest photos by webapp");
+		logger.debug("requested latest photos by webapp", { clientId: socket.id });
 
 		utils.getRecentImages(utils.getConfig().webapp.maxImages, function(files) {
 			if (files) {
@@ -147,11 +150,11 @@ io.on('connection', function(socket){
 					images.push('photos/'+files[i]);
 				}
 
-				console.log("webapp: sending "+files.length+" latest photos to webapp");
+				logger.debug("sending latest photos to webapp", { clientId: socket.id, count: files.length });
 
 				io.to(socket.id).emit('new photos', images);
 			} else {
-				console.log("webapp: no files to send");
+				logger.debug("no files to send", { clientId: socket.id });
 			}
 		});
 	});
@@ -168,6 +171,7 @@ io.on('connection', function(socket){
 
 	socket.on('set_config', function(json){
 		if (passwordIsValid(json['password'])) {
+			logger.warn('set_config', { clientId: socket.id });
 
 			utils.saveConfig(json['config'], function (res) {
 				if (res) {
@@ -190,7 +194,7 @@ io.on('connection', function(socket){
 				if (json['option'] == 'shutdown'){
 					var exec = require('child_process').exec;
 					exec("shutdown now", function (error, stdout, stderr) {
-						console.log('webapp: ', stdout);
+						logger.warn('webapp: ', { clientId: socket.id, stdout });
 					});
 
 				} else if (json['option'] == 'reboot') {
@@ -198,7 +202,7 @@ io.on('connection', function(socket){
 
 					var exec = require('child_process').exec;
 					exec("reboot", function (error, stdout, stderr) {
-						console.log('webapp: ', stdout);
+						logger.warn('webapp: ', { clientId: socket.id, stdout });
 					});
 
 				} else if (json['option'] == 'exit'){
@@ -208,46 +212,48 @@ io.on('connection', function(socket){
 					app.exit();
 				} else if (json['option'] == 'git-pull'){
 
-					console.log("webapp: pulling from git repo");
+					logger.warn("webapp: pulling from git repo", { clientId: socket.id });
 					var exec = require('child_process').exec;
 					exec("cd "+__dirname+" && git pull", function (error, stdout, stderr) {
-						console.log("webapp: execute 'git pull', stdout: "+stdout);
+						logger.warn("webapp: execute 'git pull'", { clientId: socket.id, stdout });
 					});
 				}
 			}
 		} else {
-			console.log('webapp: password wrong');
+			logger.warn('set_config: password wrong', { clientId: socket.id });
 		}
 	});
 
 	socket.on('get_download_image', function(path, grayscale){
-		console.log('get_download_image');
+		logger.debug('get_download_image', { clientId: socket.id, path, grayscale });
 
 		var filename = path.substr(path.indexOf("/")+1);
 		utils.convertImageForDownload(filename, grayscale, function(res, path, err) {
 			if (res) {
 				io.to(socket.id).emit('get_download_image', path);
 			} else {
+				logger.error('get_download_image', { clientId: socket.id }, err);
 				io.to(socket.id).emit('get_download_image_error');
 			}
 		});
 	});
 
 	socket.on('get_download_gif', function(paths, grayscale){
-		console.log('get_download_gif', paths, grayscale);
+		logger.debug('get_download_gif', { clientId: socket.id, paths, grayscale });
 
 		paths = paths.map(path => path.substr(path.indexOf("/")+1));
 		utils.createGifForDownload(paths, grayscale, function(res, path, err) {
 			if (res) {
 				io.to(socket.id).emit('get_download_gif', path);
 			} else {
+				logger.error('get_download_gif', { clientId: socket.id }, err);
 				io.to(socket.id).emit('get_download_gif_error');
 			}
 		});
 	});
 
 	socket.on('trigger_photo', function(password){
-		console.log('trigger_photo');
+		logger.debug('trigger_photo', { clientId: socket.id });
 
 		if (utils.getConfig().webapp.enableRemoteRelease || passwordIsValid(password)) {
 			booth.triggerPhoto(function(success) {
@@ -261,11 +267,12 @@ io.on('connection', function(socket){
 	});
 
 	socket.on('print_preview', function(layout, images) {
+		logger.debug('print_preview', { clientId: socket.id, layout, images });
 		const paths = images.map(file => file.substr(file.indexOf("/")+1))
 			.map(file => path.join(utils.getPhotosDirectory(), file));
 		collage.createPreviewCollage(layout, paths, function(err, imagePath) {
 			if (err) {
-				console.log('print_preview error', err);
+				logger.error('print_preview error', { clientId: socket.id }, err);
 				io.to(socket.id).emit('print_preview_error');
 			} else {
 				io.to(socket.id).emit('print_preview_success', imagePath);
@@ -274,8 +281,10 @@ io.on('connection', function(socket){
 	});
 
 	socket.on('print', function(layout, images, printCount, password) {
+		logger.debug('print', { clientId: socket.id, layout, images, printCount, hasPassword: !!password });
 		printCount = printCount == null ? 0 : parseInt(printCount);
 		if (printCount >= utils.getConfig().printing.limitPerUser && utils.getConfig().printing.limitPerUser > 0 && !passwordIsValid(password)) {
+			logger.debug('print_limit_exceeded', { clientId: socket.id });
 			io.to(socket.id).emit('print_error', 'print_limit_exceeded');
 			return;
 		}
@@ -284,10 +293,10 @@ io.on('connection', function(socket){
 			.map(file => path.join(utils.getPhotosDirectory(), file));
 		collage.createCollage(layout, paths, function(err, imagePath) {
 			if (err) {
-				console.log('print error', err);
+				logger.error('print error (collage)', { clientId: socket.id }, err);
 				io.to(socket.id).emit('print_error');
 			} else {
-				console.log('Printing image ', imagePath);
+				logger.info('Printing image ', { clientId: socket.id, imagePath });
 
 				const contentDir = utils.getContentDirectory();
 				fs.appendFile(contentDir + '/print-log.txt', 'Print ' + imagePath + '\n', function() { });
@@ -297,13 +306,15 @@ io.on('connection', function(socket){
 
 					if (err) {
 						logMessage += 'FAILED ' +  err.toString();
+						logger.error('print error (send to printer)', { clientId: socket.id }, err);
 						io.to(socket.id).emit('print_error');
 					} else {
 						logMessage += 'SUCCESSFULL ' + JSON.stringify(jobInfo);
+						logger.info('Printing successful', { clientId: socket.id, imagePath, jobInfo });
 						io.to(socket.id).emit('print_success');
 					}
 
-					fs.appendFile(contentDir + '/print-log.txt', logMessage, function() { });
+					fs.appendFile(contentDir + '/print-log.txt', logMessage + '\n', function() { });
 				});
 			}
 		});
@@ -314,7 +325,7 @@ function passwordIsValid(password) {
 	if (utils.getConfig() && utils.getConfig().webapp.password) {
 		return (password && password == utils.getConfig().webapp.password);
 	}
-	console.log('webapp: getting password from config.json failed');
+	logger.warn('webapp: getting password from config.json failed');
 	return false;
 }
 

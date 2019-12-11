@@ -1,6 +1,8 @@
 import i18next from "i18next";
 import Backend from "i18next-node-fs-backend";
 
+import logger from './logger.js'
+
 class TranslationService {
     constructor() {
         this.translate = null;
@@ -12,7 +14,7 @@ class TranslationService {
             return;
         }
 
-        console.log('Using translations for language', config.language || 'en', 'with fallback language en');
+        logger.debug('Using translations', { language: config.language, fallbackLanguage: 'en' });
 
         let translationDirectory = './i18n/{{lng}}.json';
         let i18nConfig = {
@@ -28,7 +30,7 @@ class TranslationService {
             .use(Backend)
             .init(i18nConfig, (error, t) => {
                 if (error) {
-                    console.log('Failed to load translations', error);
+                    logger.error('Failed to load translations', error);
                     callback(error);
                     return;
                 }
