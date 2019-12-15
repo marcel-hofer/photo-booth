@@ -48,7 +48,7 @@ let livePreview;
 
 camera.initialize(function( res, msg, err) {
   if (!res) {
-    console.error('camera:', msg, err);
+    logger.error('camera:', msg, err);
     new CameraErrorOnStartupPrompt(-1).start(false, false);
   }
   let liveConfig = utils.getConfig().live;
