@@ -59,7 +59,7 @@ class Utils {
   }
 
   initLogger() {
-    initLogger(this.config);
+    initLogger(this.config, this.getTimestamp().replace(/-/g, ''));
     logger.debug('logger initialized')
   }
 

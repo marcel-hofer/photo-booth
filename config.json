@@ -55,6 +55,6 @@
 	},
 	"logging": {
 		"level": "debug",
-		"fileName": "content/app.log"
+		"fileName": "content/logs"
 	}
 }

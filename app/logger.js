@@ -4,7 +4,10 @@ const logger = log4js.getLogger();
 
 export default logger;
 
-export function init(config) {
+export function init(config, appStartTime) {
+    // appStartTime with multiFile appender will create one file per app run
+    logger.addContext("appStartTime", appStartTime);
+
     const logging = config.logging || { };
 
     log4js.configure({
@@ -22,12 +25,14 @@ export function init(config) {
                 level: logging.level || 'info'
             },
             fileAppender: {
-                type: 'file',
+                type: 'multiFile',
                 layout: {
                     type: 'pattern',
                     pattern: '%d{yyyy-MM-dd hh:mm:ss.SSS} [%p] %m'
                 },
-                filename: logging.fileName || 'app.log'
+                base: logging.fileName || 'content/logs',
+                property: 'appStartTime',
+                extension: '.log'
             },
             file: {
                 type: 'logLevelFilter',
